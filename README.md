@@ -26,4 +26,4 @@ Finalmente, con ayuda de esta herramienta obtendremos conclusiones sobre cuál e
 Funcionamiento del entorno experimental
 --------------------
 
-Cooming soon
+Coming soon
