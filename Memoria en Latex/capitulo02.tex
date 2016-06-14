@@ -1,0 +1,760 @@
+\pagestyle{scrheadings}
+\ihead[]{\rightmark}
+\ohead[]{Iván Rodríguez Méndez}
+\ofoot[]{\thepage{}}
+\chapter{Introducción al filtro de Kalman}\label{ch:capitulo2}
+
+\section{¿Qué es el filtro de Kalman?}
+
+Dentro de las herramientas matemáticas existentes para la estimación estocástica de medidas de sensores ruidosas, se encuentra la herramienta que estudiaremos a lo largo de este trabajo, la denominada filtro de Kalman.
+La importancia de utilizar este filtro radica en que se postula como el principal método para estimar los estados de sistemas dinámicos lineales representados de la forma espacio-estado.
+Los sistemas representados de esta manera tienen muchas aplicaciones de interés, como veremos más adelante nos ayudarán en gran medida para la realización de simulaciones por ordenador.
+Aunque esta herramienta tiene un desarrollo matemático complejo, llegar a entender su funcionamiento de forma conceptual no es difícil y de hecho es lo que plantearemos en este trabajo.
+El \ac{KF} fue presentado en el año 1960, por el matemático Rudolf E.Kalman, en un documento que describía una solución recursiva para el problema del filtrado lineal de datos discretos, por el método de mínimos cuadrados. La definición clásica del filtro supone que el sistema debe ser lineal y además estar afectado por ruidos Gaussianos, es decir ruidos o perturbaciones que siguen una distribución Gaussiana de media cero (ruido blanco),  para que pueda realizarse la estimación de una forma óptima. 
+% * <amorellg@ull.edu.es> 2016-05-24T16:56:10.934Z:
+%
+% > gaussianos
+%
+% A veces lo pones en mayúsculas y otras en minúsculas. Además, queda más correcto cuando lo nombras las primeras veces, decir "ruidos o perturbaciones que siguen una distribución Gaussiana, de media cero (ruido blanco)"
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:10:39.073Z.
+% * <amorellg@ull.edu.es> 2016-05-24T16:53:08.464Z:
+%
+% > El \ac{KF} 
+%
+% ojo al introducir una abreviatura, asegúrate de que la primera vez que aparece hayas puesto el nombre completo: "El filtro de Kalman (Kalman Filter, KF)", algo así
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:17:37.226Z:
+%
+% Así está puesto en el capítulo 1
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:41:22.351Z.
+Desde el momento de la invención del algoritmo, debido en gran parte al avance de la informática, el filtro ha sido objeto de una extensa investigación y aplicación. 
+% * <amorellg@ull.edu.es> 2016-06-01T17:19:57.948Z:
+%
+% > al avance de la informática
+%
+% me suena mejor "al desarrollo de sistemas de cómputo cada vez más avanzados"
+%
+% ^.
+A lo largo de los años han surgido algunas modificaciones que permiten aplicar el filtro en condiciones para las que originalmente no estaba diseñado, las más populares son el \ac{EKF} (que puede aplicarse a sistemas no lineales), el \ac{UKF} y por último el \ac{CKF}.
+Como vemos el hecho de que el algoritmo original fuera presentado hace más de 50 años no ha evitado que actualmente esta herramienta siga usándose para una gran variedad de aplicaciones. 
+Los sistemas para los que se aplican este tipo de filtros van desde la simulación de instrumentos musicales en un entorno de realidad virtual, hasta la extracción de secuencias de movimiento en vídeos o incluso su uso en sistemas de navegación autónoma y asistida, el guiado de misiles, etc.
+% * <amorellg@ull.edu.es> 2016-05-24T17:05:18.562Z:
+%
+% > rastreo
+%
+% no te referirías más bien a "guiado de misiles" ?
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:39:31.432Z:
+%
+% ups !
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:41:19.268Z.
+
+% * <amorellg@ull.edu.es> 2016-05-24T17:06:32.898Z:
+%
+% > Como ya hemos comentado
+%
+% esto y...
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:41:18.492Z.
+Con respecto al principio de funcionamiento del filtro, este se presenta como el mejor estimador posible para una amplia clase de problemas y un muy efectivo estimador para una cantidad aún mayor de aplicaciones como ya decíamos anteriormente. 
+% * <amorellg@ull.edu.es> 2016-05-24T17:06:50.666Z:
+%
+% > como ya decíamos anteriormente
+%
+% ....esto son cosas parecidas y están muy cerca en el texto
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:42:23.079Z:
+%
+% Quito uno y dejo el otro
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:42:25.119Z.
+Es un algoritmo fácil de entender conceptualmente y con pocos requerimientos computacionales (algoritmo \ref{alg:algoritmoKalman}). 
+% * <amorellg@ull.edu.es> 2016-05-24T17:52:26.287Z:
+%
+% > Su modo de funcionamiento es muy fácil de entender, y la forma de aplicar estas técnicas es muy sencilla si contamos con algún sistema computacional para realizar los cálculos. 
+%
+% quitaría toda esta frase y pondría "Es un algoritmo fácil de entender conceptualmente y con pocos requerimientos computacionales."
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:42:59.536Z.
+% * <amorellg@ull.edu.es> 2016-05-24T17:08:16.249Z:
+%
+% > Su modo de funcionamiento es muy fácil de entender,y la forma de aplicar estas técnicas es muy sencilla si contamos con algún sistema computacional para realizar los cálculos. 
+%
+% Tras esta frase estaría bien referenciar ya la figura 2.1
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:44:16.905Z.
+Como decíamos se trata de un método iterativo que estima el estado no observable (aquel estado que no es posible medir por medio de sensores, lo cual es una situación muy común) de un sistema dinámico lineal dadas una serie de medidas que proporcionan información acerca de dicho estado en cada instante de tiempo.
+% * <amorellg@ull.edu.es> 2016-06-01T17:24:55.866Z:
+%
+% recursivo o iterativo? :(
+%
+% ^.
+Estas ideas las introduciremos con más profundidad más adelante (sección \ref{sec:filtros_bayes}).
+% * <amorellg@ull.edu.es> 2016-05-24T18:09:19.479Z:
+%
+% > Estas ideas las introduciremos con más profundidad más adelante.
+%
+% Pon una referencia a la subsección o donde sea que lo introduzcas
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:47:49.881Z:
+%
+% Listo !
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:47:51.245Z.
+Por lo tanto el filtro funciona suponiendo que el sistema puede ser descrito a través de un modelo estocástico lineal, en donde el error asociado tanto al sistema como a la información adicional que se incorpora en el mismo tiene una distribución normal con media cero y una varianza determinada. 
+Es muy importante para el correcto funcionamiento de la herramienta caracterizar bien el ruido que presenta nuestro sistema ya que mejorará notablemente el desempeño de este, lo que se traduce en una buena estimación. 
+Otro aspecto relevante a tener en cuenta para comprender el funcionamiento del filtro es la representación del sistema en la forma espacio-estado.
+Esta representación es esencialmente una notación conveniente para la estimación de modelos estocásticos donde se asumen errores en la medición del sistema , lo que permite abordar el manejo de un amplio rango de modelos de series temporales. 
+% * <amorellg@ull.edu.es> 2016-05-24T17:56:49.197Z:
+%
+% > , esta es otra idea que también trabajaremos. 
+%
+% no me cuadra esta frase aquí (la quitaría)
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:48:18.013Z.
+% * <amorellg@ull.edu.es> 2016-05-24T17:55:59.373Z:
+%
+% > (los sistemas de medida reales no son perfectos y por lo tanto asumimos que tienen errores en las medidas)
+%
+% lo quitaría, de esto ya hablaste en la introducción
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:49:51.529Z.
+% * <amorellg@ull.edu.es> 2016-05-24T17:55:21.397Z:
+%
+% > La representación nombrada anteriormente
+%
+% Esta representación
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:50:10.320Z.
+Representando el sistema de esta manera podemos modelar los ruidos como una simple suma dentro de la ecuación, aunque esto lo detallaremos en posteriores secciones. 
+El ciclo de funcionamiento del filtro  es un procedimiento que opera por medio de un mecanismo de dos partes fundamentales, un ciclo de predicción y un ciclo de corrección, también conocido como ciclo de actualización. 
+% * <amorellg@ull.edu.es> 2016-05-24T17:58:55.899Z:
+%
+% > también conocido como ciclo de actualización
+%
+% pondría "o actualización"
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T19:53:50.195Z.
+El modo de operación lo podemos ver en el algoritmo \ref{alg:algoritmoKalman} el cual se ejecutaría de forma iterativa. 
+
+\begin{algorithm}
+\begin{algorithmic} [1]
+\STATE{\textbf{Ciclo de predicción:}}
+\STATE{\hspace{0.5cm} Predecir la media del estado posterior}
+\STATE{\hspace{0.5cm} Predecir la covarianza del estado posterior}
+\STATE{\textbf{Ciclo de actualización:}}
+\STATE{\hspace{0.5cm} Calcular la ganancia de Kalman}
+\STATE{\hspace{0.5cm} Actualizar la predicción realizada con la medida $z_k$}
+\STATE{\hspace{0.5cm} Actualizar la covarianza}
+\end{algorithmic}
+\caption{Algoritmo filtro de Kalman}\label{alg:algoritmoKalman}
+\end{algorithm}
+% * <amorellg@ull.edu.es> 2016-05-24T17:59:41.508Z:
+%
+% > El modo de operación lo podemos ver en la figura \ref{Modelofiltrodekalman}. 
+%
+% La figura está bien, pero el estilo, fuente y que esté en inglés desentona con el formato de la memoria... si tienes tiempo, te aconsejo que lo conviertas en un trozo del tipo "algorithm" y que lo pongas en pseudocódigo, quedará igual de claro y se verá mejor ;)
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:11:44.249Z:
+%
+% Hecho !
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:11:45.611Z.
+
+Básicamente este algoritmo lo que realiza es pronosticar el nuevo estado a partir de su estimación previa añadiendo un término de corrección proporcional al error de predicción, de tal forma que este último es minimizado estadísticamente. 
+De esta manera es posible calcular la función de verosimilitud sobre el error de predicción del modelo . 
+% * <amorellg@ull.edu.es> 2016-05-24T18:01:58.067Z:
+%
+% > De esta manera es posible calcular la función de verosimilitud sobre el error de predicción del modelo son generados por el filtro. 
+%
+% esta frase está rara
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:15:23.362Z.
+El funcionamiento como podemos ver es muy simple pero intuitivo y de lo que se trata es de predecir cual será el estado de nuestro sistema en el ciclo de predicción y posteriormente ajustar esa predicción en el ciclo de actualización.
+% * <amorellg@ull.edu.es> 2016-05-24T18:02:19.130Z:
+%
+% > básico
+%
+% suena mal, mejor "simple pero intuitivo"
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:16:28.253Z.
+
+En resumen, el procedimiento completo de estimación es el siguiente: el modelo es descrito en forma de espacio-estado por su potencia descriptiva y para un conjunto inicial de parámetros dados, los errores de predicción del modelo son generados por el filtro gracias a como lo hemos modelado y a la información que nos proporcionan los sensores \cite{RamseyArticle} \cite{KalmanEco}. 
+% * <amorellg@ull.edu.es> 2016-06-01T17:26:43.993Z:
+%
+% > ventajas matemáticas
+%
+% "potencia descriptiva" mejor?
+%
+% ^ <alu0100765755@ull.edu.es> 2016-06-02T10:34:32.119Z.
+Los errores en el modelo son utilizados para evaluar iterativamente la función de verosimilitud hasta maximizarla para obtener la estimación que maximiza la verosimilitud según las asunciones sobre los modelos de ruido.
+% * <amorellg@ull.edu.es> 2016-05-24T18:03:59.146Z:
+%
+% > para saber con la máxima certeza posible que la medida tomada es correcta.
+%
+% más bien "para obtener la estimación que maximiza la verosimilitud según las asunciones sobre los modelos de ruido"
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:17:10.113Z.
+% * <amorellg@ull.edu.es> 2016-05-24T18:03:09.826Z:
+%
+% > recursivamente
+%
+% "iterativamente"
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:17:22.791Z.
+
+
+% * <amorellg@ull.edu.es> 2016-05-24T18:07:25.928Z:
+%
+% > Para la redacción de esta introducción al filtro de Kalman nos hemos basado en los textos siguientes \cite{RamseyArticle},\cite{KalmanEco} donde se explica con más profundidad el funcionamiento del algoritmo.
+%
+% Releyendo esto me parece que quedaría mejor que no pusieras esta frase, y citaras esas 2 referencias tras los puntos más relevantes del texto donde te refieras a ellas, que es lo más habitual
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:20:41.099Z.
+
+Se invita al lector interesado en un mayor nivel de profundidad sobre la fundamentación matemática del filtro de Kalman a que consulte el anexo \ref{ApendiceA}.
+% * <amorellg@ull.edu.es> 2016-05-24T18:06:04.992Z:
+%
+% > Si quiere más información sobre las matemáticas en las que se basa el filtro de Kalman consulte el anexo \ref{ApendiceA}.
+%
+% quizá te parezca pedante esto :D pero yo pondría: "Se invita al lector interesado en un mayor nivel de profundidad sobre la fundamentación matemática del filtro de Kalman a que consulte el anexo...."
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:21:35.436Z.
+
+\section{Robot, entorno e interacción}
+
+El entorno, o el mundo para un robot es un sistema dinámico que posee estados tanto observables como ocultos o internos.
+% * <amorellg@ull.edu.es> 2016-05-24T18:10:33.169Z:
+%
+% > que posee estados internos.
+%
+% "que posee estados tanto observables como ocultos o internos"
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:23:26.678Z.
+El robot puede adquirir información del entorno por medio de los sensores.
+Sin embargo, la medidas por lo general suelen estar afectadas por ruido, y por lo general hay muchas características de nuestro entorno que no pueden ser medidas de forma directa por parte de los sensores. 
+Como consecuencia, el robot mantiene una verosimilitud que tiene relación con su entorno y los estados relacionados.
+% * <amorellg@ull.edu.es> 2016-05-24T18:11:27.023Z:
+%
+% > verosimilitud interna 
+%
+% te refieres a unos estados internos? no entiendo esto
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:24:03.442Z.
+El robot también es capaz de influir sobre el entorno con el uso de actuadores. Hay que tener en cuenta que el efecto de interactuar con  el entorno por medio de los actuadores es algo impredecible.
+% * <amorellg@ull.edu.es> 2016-05-24T18:12:15.942Z:
+%
+% >  influir sobre
+%
+% "interactuar con el entorno"
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:26:24.334Z.
+
+\subsection{Concepto de estado}
+
+Los entornos se pueden definir por medio de \textit{estados}.
+En nuestro caso, podemos ver los estados como una colección de todos los aspectos del robot y de su entorno que pueden tener impacto en un futuro inmediato, un ejemplo muy claro sería la pose de nuestro robot. Por otra parte podemos definir estados que simplifiquen la realidad, por ejemplo asumiendo un mundo 2D en lugar de un entorno tridimensional.
+% * <amorellg@ull.edu.es> 2016-05-24T18:13:33.550Z:
+%
+% >  de todos los aspectos del robot y de su entorno
+%
+% no necesariamente cierto, puedes definir estados que simplifiquen la realidad, como asumir un mundo 2D en lugar de 3D, como haces en este TFG
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:40:14.268Z:
+%
+% Creo que la aclaración le viene bien :) 
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:40:16.807Z.
+Los estados pueden cambiar con el tiempo, tal y como lo hace un robot cuando se mueve, también existe la posibilidad de que dicho estado permanezca inalterable durante la operación del robot (por ejemplo, la localización de los obstáculos en el mundo).
+Los estados que sufren cambios pueden ser llamados \textit{estados dinámicos}, y por otra parte los que no cambian los podemos denominar \textit{estados estáticos}.
+Los estados también incluyen variables propias de los robots tales como la pose, la velocidad o cualquier tipo de información que nos pueda resultar de interés.
+En el desarrollo de este trabajo denotaremos los estados con su notación más habitual $x$, este vector contendrá los estados específicos que necesitemos. El estado en el tiempo $t$ lo denotaremos como $x_{t}$. Los estados más utilizados en el campo de la robótica móvil y por lo tanto en este trabajo son los siguientes:
+% * <amorellg@ull.edu.es> 2016-05-24T18:17:36.340Z:
+%
+% > típica
+%
+% "habitual"
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:42:05.966Z.
+\begin{itemize}
+    \item \textbf{La pose del robot}, que daría información sobre la localización y orientación de este relativo a sistema de coordenadas global.
+    Los robots móviles poseen seis grados de libertad, que se traducen en seis variables de estado.
+    Tres variables se utilizarían para la posición en coordenadas de un espacio Cartesiano de tres dimensiones y las otras tres para dar información sobre las orientaciones angulares, también conocidas como ángulos de Euler (\textit{pitch, roll y yaw}).
+% * <amorellg@ull.edu.es> 2016-05-24T18:20:46.875Z:
+%
+% > pitch, roll y yaw
+%
+% ojo, aquí lo pones normal y más abajo en itálica
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:45:25.074Z.
+% * <amorellg@ull.edu.es> 2016-05-24T18:19:47.091Z:
+%
+% > Tres
+%
+% O letras o números para indicar cardinalidad....
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:45:26.334Z.
+% * <amorellg@ull.edu.es> 2016-05-24T18:18:50.196Z:
+%
+% > la localización cartesiana
+%
+% "la posición en coordenadas de un espacio Cartesiano de 3 dimensiones"
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T20:45:27.616Z.
+    Para los robots, que como en nuestro caso, se mueven en un espacio planar, la pose se reduciría a únicamente tres variables, dos de ellas para la localización espacial y la última para dar cuenta de la orientación (concretamente se usaría el \textit{yaw})
+    \item \textbf{La configuración de actuadores}, como podría ser la posición de las uniones en un manipulador o la distancia entre ruedas en un robot móvil.
+    \item \textbf{La velocidad del robot}, un robot que se mueve por el espacio está caracterizado por 6 parámetros de velocidad, uno para cada uno de las variables que nombramos anteriormente en la pose.
+    Las velocidades son denominadas como \textit{estados dinámicos} por su propia naturaleza cambiante.
+    \item \textbf{La localización y los objetos o características del entorno}.
+% * <amorellg@ull.edu.es> 2016-05-24T18:21:47.490Z:
+%
+% >  los objetos
+%
+% "los objetos o características"
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T21:27:35.678Z.
+    Un objeto en el entorno podría ser cualquier cosa, es decir, un muro, un árbol, etc.
+    Las características de estos objetos podrían ser sus propiedades físicas (color, textura, tamaño, etc). Dependiendo del grado de interacción de nuestro robot con el entorno podemos pasar de captar media docena de características de nuestro entorno a captar millones de variables de estado. Para los problemas tratados en este trabajo las características del entorno son estáticas como ya veremos es secciones posteriores.
+    \item \textbf{Localización y velocidades de objetos del entorno}. Muchas veces el robot no es el único objeto en movimiento dentro del entorno por lo tanto también debe tener nociones sobre lo que pasa a su alrededor con otros objetos que se mueven.
+    \item \textbf{Información interna}. Podría tratarse tanto del estado de las baterías como del estado de los sensores que posee nuestro robot.
+\end{itemize}
+Un estado $x_{t}$ puede ser llamado \textbf{óptimo} si es el mejor predictor de las situaciones futuras que puedan darse.
+% * <amorellg@ull.edu.es> 2016-05-24T18:22:44.106Z:
+%
+% > Un estado $x_{t}$ puede ser llamado \textbf{completo} si es el mejor predictor de las situaciones futuras que puedan darse.
+%
+% diría más bien que a lo que te refieres es a un estimador óptimo del estado xt, lo del estado completo no lo había escuchado nunca....
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T21:28:37.307Z.
+Estos estados se estiman por medio de lo que se conoce como \textbf{estimación estocástica}.
+
+\subsection{Estimación estocástica} \label{sec:Estimacion_estocastica}
+Un proceso estocástico es aquel cuyo comportamiento es no determinista, en la medida que el siguiente estado del sistema está determinado tanto por las acciones predecibles del proceso como por elementos aleatorios.
+Actualmente existen muchos avances tecnológicos, concretamente computacionales (mayor velocidad de procesadores y sistemas informáticos en general), para estimar o calcular un estado desconocido desde un conjunto de medidas tomadas del proceso, la gran mayoría de los métodos existentes no tienen en cuenta la naturaleza ruidosa de las medidas.
+% * <amorellg@ull.edu.es> 2016-05-24T18:24:14.817Z:
+%
+% > concretamente computacionales
+%
+% parece que des a entender que son métodos por "fuerza bruta", no sé si te refieres a la herramienta o método en sí que se puede utilizar para resolver de forma analítica un estado, que no contaría con un modelado de los errores de medida, como dices. Es decir, no sé si te refieres a por ejemplo triangular la posición teniendo 3 balizas, sin tener en cuenta los errores de un telémetro o el sensor que sea
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T21:29:51.518Z:
+%
+% Era un poco en referencia a la eficiencia de los sistemas no al método de cálculo
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T21:29:54.076Z.
+Para ilustrar mejor la naturaleza ruidosa del proceso pensemos en la localización de un robot. Mientras que el robot se va moviendo la información que captamos del entorno varía y nuestra fuente fundamental de información son los mismos sensores. 
+La pose se estima derivada de la información recibida por medio de medidas ruidosas procedentes de sensores eléctricos, mecánicos, inerciales, ópticos, acústicos, magnéticos, etc. 
+Este ruido es típicamente estadístico por naturaleza (o puede ser modelado como tal sin generar un error muy grande), lo cual nos conduce a métodos estocásticos para tratar los problemas.
+
+\subsection{El problema de diseño del observador.}
+% * <amorellg@ull.edu.es> 2016-05-24T19:19:07.194Z:
+%
+% > El problema de diseño del observador.
+%
+% Esto lo dejaría en el capítulo, pero todo el punto 2.4 lo bajaría a los anexos de esta parte
+%
+% ^ <amorellg@ull.edu.es> 2016-05-24T19:21:56.318Z:
+%
+% Tras leer esta parte, creo que tendría sentido meterla como punto 2.2.2, piénsalo
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:35:33.209Z:
+%
+% Lo he añadido como 2.2.3 justo después de la estimación estocástica ... No se que te parecerá
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:35:35.490Z.
+
+Existe un problema muy usual y extendido con respecto a la teoría de los sistemas lineales conocido como el \textit{problema de diseño del observador}. 
+La base de este problema radica en la dificultad existente en determinar, o mejor dicho estimar, los estados internos de un sistema lineal únicamente con la información obtenida de las salidas del sistema, como ya hemos explicado anteriormente. 
+Hay que destacar por otro lado, que también tenemos acceso a las entradas de control de nuestro sistema (normalmente modeladas con el vector $u_{t}$) pero obviamente estas no entran en juego a la hora de tratar con este problema ya que es algo que presuponemos que conocemos. 
+Una manera muy típica de enfocar este problema para poder entenderlo, es la comparación con una caja negra donde podemos observar las señales que salen de esta pero no sabemos nada sobre lo que ocurre en su interior. 
+Si llevamos el ejemplo de la caja a la ecuación de estados rápidamente veremos que existen estados no medibles directamente y es lo que conocemos por estados no observables.
+
+La mayoría de aproximaciones para este problema se basan en modelos de espacio-estado. 
+Existe un modelo de proceso que es capaz de modelar la transformación de los estados de dicho proceso. 
+Este modelo puede ser representado como una ecuación en diferencias de la siguiente forma:
+\begin{equation}\label{modelodeproceso}
+\bar{x}_{k} = A\bar{x}_{k-1} + B u_{k} + w_{k-1}
+\end{equation}
+Por otra parte también tenemos una ecuación conocida como el modelo de medida. 
+Esta ecuación describe la relación existente entre los estados del proceso y las medidas. 
+Puede representarse de la siguiente manera:
+\begin{equation}\label{ecuaciondemedidadeproceso}
+\bar{z}_{k} = H_{k}\bar{x}_{i} +v_{k}
+\end{equation}
+Los términos $w_{k}$ y $v_{k}$ son variables aleatorias que representan el ruido de proceso y de medida respectivamente. 
+
+En secciones posteriores hablaremos más en profundad sobre las ecuaciones \ref{modelodeproceso} y \ref{ecuaciondemedidadeproceso} donde explicaremos de donde derivan exactamente.
+\subsection{Interacción con el entorno}
+Fundamentalmente existen dos tipos básicos de interacción entre el robot y el entorno en el que se encuentra. 
+En una de ellas el robot puede influir en los estados del entorno por medio de sus actuadores y en el otro tipo de interacción el robot puede recoger información del entorno por medio de sensores.
+Ambos tipos de interacción pueden ocurrir simultáneamente, aunque las trataremos por separado y las definiremos de la siguiente forma:
+\begin{itemize}
+    \item \textbf{Medidas de sensores}: La percepción es el proceso por medio del que el robot obtiene información de los sensores acerca de los estados del entorno. 
+    Por ejemplo, el robot puede obtener imágenes de una cámara, o consultar a sus otros sensores para recibir información acerca de los estados del entorno. El resultado de esa información captada es lo que conocemos como \textit{medida}. Normalmente esta información llega con cierto retardo con respecto al momento en que se realizó la medición, por lo tanto es como si tuviéramos información acerca de algunos estados anteriores.
+    \item \textbf{Acciones de control}. Las acciones de control cambian los estados del entorno.
+    Algunos ejemplos podrían ser el control del movimiento de un robot (envío de comandos a las ruedas para alcanzar una cierta consigna).
+    Incluso cuando el robot no desarrolla ninguna acción los estados suelen cambiar.
+    Así, para tener una mayor consistencia se considera que el robot siempre ejecutará acciones de control incluso cuando decida no mover sus motores. En la práctica, el robot ejecuta continuamente acciones de control y realiza medidas de manera concurrente.
+\end{itemize}
+La diferencia entre \textit{medida} y \textit{acción de control} es crucial. 
+Como ya hemos dicho la percepción proporciona información acerca de las variables de estado del entorno y por lo tanto intenta aumentar el conocimiento del entorno.
+El movimiento, por otra parte lo que produce es una pérdida de conocimiento sobre los objetos que tenemos a nuestro alrededor debido al ruido asociado a los actuadores aunque a veces una acción de control apropiada puede llegar a lograr un movimiento bastante preciso. Esto no significa que se tengan que dar por separado la medida y la acción de control, ya hemos dicho que pueden darse simultáneamente.
+
+\subsection{Evolución de los estados}
+La evolución de los estados y las medidas se considera que siguen el modelo probabilista de inferencia Bayesiana \cite{thrun_probabilistic_2005}.
+% * <amorellg@ull.edu.es> 2016-05-24T18:31:10.175Z:
+%
+% > por las reglas de la probabilidad.
+%
+% "se considera que siguen el modelo probabilista de inferencia Bayesiana (y cita aquí al libro de Sebastian)."
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T21:39:41.445Z.
+En general,  el estado $x_{t}$ está generado de forma estocástica (sección \ref{sec:Estimacion_estocastica}).
+% * <amorellg@ull.edu.es> 2016-05-24T18:29:29.223Z:
+%
+% > como ya hemos dicho
+%
+% evitaría poner este tipo de frases y tirar más de citas a las subsecciones a las que te refieras
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T21:41:32.938Z.
+Así, tendría sentido especificar la distribución de probabilidad con la que se ha generado dicho estado $x_{t}$. 
+En primera aproximación, la aparición del estado $x_{t}$ podría estar condicionada por todos los estados anteriores, mediciones y acciones de control.
+Por lo tanto, las reglas de probabilidad caracterizan la evolución de los estados como una distribución de probabilidad que puede ser dada de la siguiente forma~\cite{thrun_probabilistic_2005}:
+% * <amorellg@ull.edu.es> 2016-06-01T17:34:31.622Z:
+%
+% > siguiente
+%
+% antes de esta ecuación creo que no has aclarado lo que son z (sensores) y u (comandos de control). Lo podrías poner a continuación de la ecuación, como: "donde u_k es la acción de control y z_k es la información sensorial, ambos en el instante k"
+%
+% ^ <alu0100765755@ull.edu.es> 2016-06-02T10:40:50.996Z.
+\begin{equation}\label{prob_med_control}
+p(x_{t} \mid x_{0:t-1},z_{1:t-1},u_{1:t})
+\end{equation}
+Donde $u_{t} o u_{k}$ es la acción de control y $z_{k} o z_{t}$ es la información sensorial, ambos en el instante t o del instante k si hablamos de tiempo discreto.
+
+\textbf{El robot ejecuta la acción de control $u_{1}$ primero, y luego realiza las medidas}
+Sin embargo, si el estado $x$ es completo será suficiente la información que contiene como para saber lo que ha ocurrido con estados previos. 
+En particular, $x_{t-1}$ sería suficiente información de todos los estados previos de control y medida hasta ese instante de tiempo, serían $u_{1:t-1}$ y $z_{1:t-1}$, por lo que no  necesitaríamos almacenar información más allá del estado anterior.
+% * <amorellg@ull.edu.es> 2016-05-24T18:35:46.101Z:
+%
+% > En particular, $x_{t-1}$ sería suficiente información de todos los estados previos de control y medida hasta ese instante de tiempo, serían $u_{1:t-1}$ y $z_{1:t-1}$.
+%
+% el sentido de esta frase no se entiende bien
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T21:46:29.531Z.
+Por lo tanto, de todas las variables anteriores en la expresión \ref{prob_med_control}, el único estado de control que importaría sería el del instante actual $u_{t}$ si conocemos el estado anterior del sistema $x_{t-1}$. En términos de probabilidad la ecuación \ref{prob_med_control} quedaría de la siguiente manera:
+\begin{equation}\label{prob_med_control_simplificado}
+p(x_{t} \mid x_{t-1},u_{t})
+\end{equation}
+Esta propiedad es lo que conocemos como \textit{independencia condicional}, que es una de las reglas de Markov que detallaremos en la sección \ref{subsec:prop_markov} .
+% * <amorellg@ull.edu.es> 2016-05-24T18:36:49.812Z:
+%
+% > \textit{independencia condicional}.
+%
+% hablas de él más abajo, pero lo puedes introducir aquí como Asunción/Suposición/Propiedad de Markov, decir que es muy importante y que se detallará en la subsección X (con la referencia correcta)
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T21:50:17.854Z.
+Por otro lado algo muy similar ocurre con las medidas que generamos a partir de nuestro modelo. De nuevo, si $x_{t}$ es completo tenemos:
+\begin{equation}\label{prob_med_simple}
+p(z_{t} \mid x_{0:t},z_{1:t-1},u_{1:t}) = p(z_{t} \mid x_{t})
+\end{equation}
+Lo que significa que el estado $x_{t}$ es suficiente para predecir las medidas $z_{t}$ (estando estas afectadas por ruido).
+El conocimiento de cualquier otra variable, tales como las medidas pasadas, acciones de control o incluso estados anteriores, es totalmente irrelevante si $x_{t}$ cumple con lo que se llama propiedad o principio de Markov (sección \ref{subsec:prop_markov}).
+% * <amorellg@ull.edu.es> 2016-05-24T18:37:53.379Z:
+%
+% > completo.
+%
+% puedes poner aquí entonces: "Es lo que se llama propiedad o principio de Markov."
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T21:52:20.388Z.
+\subsection{Modelado de la certidumbre}
+Otro concepto muy importante en la robótica probabilística es la verosimilitud.
+La verosimilitud nos da una idea del conocimiento interno del robot acerca de los estados del entorno, es decir, no aporta conocimiento sobre como de precisa es la estimación de un estado. 
+% * <amorellg@ull.edu.es> 2016-05-24T18:39:56.824Z:
+%
+% > La verosimilitud nos da una idea del conocimiento interno del robot acerca de los estados del entorno. 
+%
+% aquí parece que te refieras a que la verosimilitud es la pose del robot en el mundo, por ejemplo
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T21:53:53.564Z.
+Como sabemos hay estados que no pueden ser medidos de forma directa, como por ejemplo la pose de un robot. 
+En su lugar para conocer la pose del robot lo que habría que hacer es calcularla partiendo de otros datos disponibles.
+Por lo tanto, podemos distinguir el verdadero estado de su certidumbre interna , o el estado de los conocimientos con respecto a ese estado partiendo de la información relacionada disponible.
+% * <amorellg@ull.edu.es> 2016-05-24T18:39:39.931Z:
+%
+% > creencia
+%
+% no habíamos quedado en certidumbre? ;)
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T21:54:55.028Z.
+En la robótica probabilistica la certidumbre se representa por medio de la \textit{probabilidad condicional}.
+Una distribución de certidumbre asignaría una probabilidad a cada posible hipótesis con respecto al estado verdadero.
+La certidumbre de un estado $x_{t}$ se representaría de la siguiente manera:
+% * <amorellg@ull.edu.es> 2016-05-24T18:40:40.330Z:
+%
+% > confianza
+%
+% aquí lo llamas confianza, pero es certidumbre, no?
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T21:55:25.152Z:
+%
+% Aquí es cuando estaba con todo el lío y no sabía como ponerlo ;) 
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T21:55:27.890Z.
+\begin{equation}\label{dist_conf}
+bel(x_{t}) = p(x_{t} \mid z_{1:t},u_{1:t})
+\end{equation}
+Lo anterior se traduce como la distribución de probabilidad de $x_{t}$ condicionada por las medidas anteriores $z_{1:t}$ y todas las acciones de control anteriores $u_{1:t}$.
+Es importante notar la distribución ha sido calculada después de tomar la medida en el instante actual $z_{t}$.
+También podríamos calcular una distribución previa a incorporar la medida, y justo después de aplicar la acción de control $u_{t}$.
+Todo lo anterior se calcularía de la siguiente manera:
+\begin{equation}\label{dist_conf_2}
+\bar{bel}(x_{t}) = p(x_{t} \mid z_{1:t-1},u_{1:t})
+\end{equation}
+En el contexto del filtro de Kalman esta distribución de probabilidad será lo que conozcamos como \textbf{predicción}.
+Y por lo tanto calcular $bel(x_{t})$ a partir de $\bar{bel}(x_{t})$ es lo que conocemos como \textbf{corrección} o \textbf{actualización}.
+
+\section{Filtros Bayesianos} \label{sec:filtros_bayes}
+\subsection{Algoritmo de los filtros Bayesianos}
+El algoritmo más extendido para calcular la certidumbre viene dado por lo que se conocen como \textit{filtros Bayesianos}.
+Estos filtros calculan una distribución de certidumbre $bel(\cdot)$ a partir de las medidas y las acciones de control.
+\begin{algorithm}
+\begin{algorithmic} [1]
+\FOR {all $x_{t}$}
+    \STATE{$\bar{bel}(x_{t})= \int{p(x_{t} \mid u_{t},x_{t-1})bel(x_{t-1})dx}$}
+    \STATE{${bel}(x_{t})= \eta p(z_{t} \mid x_{t})\bar{bel}(x_{t})$}
+\ENDFOR
+\RETURN $bel(x_{t})$
+\end{algorithmic}
+\caption{Algoritmo de filtros Bayesianos \cite{thrun_probabilistic_2005} ($bel(x_{t-1}),u_{t},z_{t})$}\label{alg:algoritmoBayes}
+\end{algorithm}
+
+En el algoritmo \ref{alg:algoritmoBayes} podemos ver la manera de proceder a la hora de realizar los cálculos. 
+% * <amorellg@ull.edu.es> 2016-05-24T18:41:38.202Z:
+%
+% > En el algoritmo \ref{alg:algoritmoBayes}
+%
+% si lo vas a poner todo en español, pon también "para" en lugar de "for", "hacer" en lugar de "do"... en general traducir las palabras reservadas
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:04:26.837Z:
+%
+% Me es dfícil darle ese formato ya que Latex tiene guardadas así las palabras reservadas. Si crees que es imprescindible lo cambiaré. 
+%
+% ^ <amorellg@ull.edu.es> 2016-06-01T17:38:42.793Z:
+%
+% aps, no lo había tenido en cuenta, se queda así entonces
+%
+% ^.
+Podemos apreciar que este algoritmo es iterativo, esto quiere decir que la certidumbre $bel(x_{t})$ en un tiempo $t$ se calcula a partir de la certidumbre anterior $bel(x_{t-1})$ en el tiempo $t-1$. Otro detalle muy importante es que hay una dependencia temporal de forma secuencial para $x$.
+% * <amorellg@ull.edu.es> 2016-05-24T18:47:48.015Z:
+%
+% > recursivo
+%
+% no me quedo contento con que lo llames recursivo, lo que hay realmente es una dependencia temporal de forma secuencial para x
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:07:59.503Z.
+Los datos de partida para la realización del cálculo son la certidumbre en el tiempo $t-1$, el estado de la acción de control más  reciente $u_{t}$ y la medida más reciente $z_{t}$.
+Como resultado el algoritmo nos devuelve la confianza $bel(x_{t})$ en el tiempo $t$.
+Como también se habrá podido apreciar, en este algortimo solo contempla uno de los dos pasos existentes en los filtros Bayesianos, el ciclo de \textbf{actualización}.
+
+Como sabemos este tipo de algoritmos tienen dos pasos fundamentales y diferenciados.
+En la línea 2, lo primero que haremos será procesar la certidumbre en función del estado de control $u_{t}$. 
+Calculamos la certidumbre del estado $x_{t}$ basándonos en la certidumbre del estado $x_{t-1}$ y de la acción de control actual $u_{t}$.
+En concreto, como podemos ver la certidumbre $\bar{bel}(x_{t})$ que el robot asigna al estado $x_{t}$ es obtenida por medio de la integral del producto de ambas distribuciones.
+Todo este proceso es lo que conocemos como ciclo de \textbf{predicción}.
+
+En la línea 3 ocurre la etapa de \textrm{corrección o actualización}.
+% * <amorellg@ull.edu.es> 2016-05-24T19:03:31.889Z:
+%
+% > El segundo paso de los filtros Bayesianos es conocido como \textrm{corrección o actualización}.
+%
+% esto ya lo has introducido varias veces... sería quitar esto y poner luego "En la línea 3 ocurre la etapa de actualización, blablabla"
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:09:12.234Z.
+En esta línea, vemos como multiplicamos la certidumbre $\bar{bel}(x_{t})$ por la probabilidad de las medidas $z_{t}$ que hemos tomado. Una vez hecho esto y normalizado el resultado obtendremos una certidumbre final $bel(x_{t})$, que devolvemos en la línea 5.
+
+Es importante tener en cuenta en qué situación nos encontraríamos si estuviéramos en el estado inicial donde no existe información previa. 
+El algoritmo necesitaría una certidumbre inicial en el tiempo inicial, es decir $bel(x_{0})$ en el tiempo $t=0$ como condición de contorno.
+Si se conoce el valor de $x_{0}$ con precisión, la certidumbre $bel(x_{0})$ podrá ser inicializada con una distribución de probabilidad cuya media sea dicho valor $x_{0}$, lo que se traduce en que asignamos probabilidad cero a cualquier otro valor que no sea el de $x_{0}$. 
+% * <amorellg@ull.edu.es> 2016-05-24T19:06:12.392Z:
+%
+% > que se centre
+%
+% "cuya media sea"
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:09:57.875Z.
+Por el contrario, si no tenemos conocimiento sobre el valor inicial $x_{0}$, deberemos inicializar la certidumbre siguiendo una función de probabilidad definida en el dominio de $x_{0}$.
+
+\subsection{La propiedad de Markov} \label{subsec:prop_markov}
+En la teoría de la probabilidad y en estadística, un proceso de Markov, es un fenómeno aleatorio dependiente del tiempo para el cual se cumple una propiedad específica: \textbf{la propiedad de Markov} \cite{markov_prop}\cite{proceso_2014_markov}. En una descripción común, un proceso estocástico con la propiedad de Markov, o sin memoria, es uno para el cual la probabilidad condicional sobre el estado presente $x_{t}$, futuro y pasado del sistema son independientes.
+% * <amorellg@ull.edu.es> 2016-05-24T19:07:29.663Z:
+%
+% >  \textbf{la propiedad de Markov}
+%
+% esto es de baja prioridad, pero lo ideal sería citar, en lugar de la wikipedia, la referencia al artículo original. En la versión inglesa de esa entrada la tienes como la referencia 1
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:14:04.073Z.
+En la localización de un robot móvil, $x_{t}$ es la pose del robot, y se aplican filtros Bayesianos para intentar calcular la pose relativa a un mapa del entorno en el que se encuentra el robot.
+Los siguientes factores pueden tener un efecto sistemático de error sobre las lecturas de los sensores por lo que pueden inducir a violaciones de los principios de la propiedad de Markov \cite{thrun_probabilistic_2005}:
+\begin{itemize}
+	\item Dinámicas no modeladas del entorno que además no están incluidas en el estado $x_{t}$ ( por ejemplo, gente moviéndose alrededor del robot y los efectos que estos producen sobre los sensores y nuestra localización)
+	\item Inexactitudes en los modelos de probabilidad utilizados en el algoritmo ($p(z_{t} \mid x_{t})$ y $p(x_{t} \mid u_{t},x_{t-1})$)
+    \item Errores en las aproximaciones realizadas sobre todo cuando aproximamos la representación de la certidumbre (por ejemplo, cuando la aproximamos a una distribución Gaussiana).
+    \item Variables del software de control del robot que puedan influir en la selección del modo de control (por ejemplo, la variable que localiza los objetivos tendrá una influencia directa sobre los comandos de control que deban aplicarse).
+\end{itemize}
+
+Cualquiera de las variables anteriores puede ser incluida en la representación de estados. Sin embargo, muchas veces es preferible una representación incompleta de los estados a otra que genere mucha complejidad en nuestro modelo y por lo tanto mucha mayor necesidad computacional.
+En la práctica los filtros Bayesianos se muestran bastante robustos a la hora de tratar con este tipo de problemas. 
+
+\subsection{Eficiencia computacional}
+
+Los filtros Bayesianos son implementados de muchas maneras, como veremos en el capítulo \ref{ch:capitulo3} y en nuestra propia implementación, existen un gran variedad de técnicas y algoritmos que estás derivadas de este.
+% * <amorellg@ull.edu.es> 2016-05-24T19:12:46.141Z:
+%
+% > Los filtros de Bayes son implementados de muchas maneras, como veremos en capítulos posteriores y en nuestra propia implementación, existen un gran variedad de técnicas y algoritmos que están derivados del filtro de Bayes.
+%
+% Me gusta como empieza esta frase, pero no el final, porque vuelves a nombrar "filtro de Bayes"
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:16:02.713Z.
+% * <amorellg@ull.edu.es> 2016-05-24T19:12:18.940Z:
+%
+% > capítulos posteriores
+%
+% referencia al canto
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:16:22.718Z.
+% * <amorellg@ull.edu.es> 2016-05-24T19:11:58.077Z:
+%
+% > Bayes
+%
+% los has estado llamando Bayesianos hasta ahora
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:20:24.463Z.
+Cada una de estas implementaciones se diferencian principalmente en la manera de tener en cuenta las medidas tomadas, la transición entre estados y la certidumbre inicial.
+Estas suposiciones dan paso a diferentes tipos de distribuciones de certidumbre posteriores, y por lo tanto existen varias implementaciones que tendrán a su vez distintas características.
+% * <amorellg@ull.edu.es> 2016-05-24T19:13:40.884Z:
+%
+% > computacionales
+%
+% un algoritmo es un algoritmo siempre, con "computacional" te refieres a "implementación" ?
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:23:10.111Z.
+Aunque existen muchas técnicas para el cálculo de la certidumbre, por lo general en robótica la certidumbre tendrá que calcularse por medio de una aproximación.
+Encontrar la aproximación adecuada para realizar el cálculo será el punto clave para la correcta estimación.
+No existe una aproximación que sea la mejor sobre las demás y mucho menos que se pueda aplicar sobre todos los campos de la robótica con los mismos resultados.
+A la hora de elegir una aproximación debemos tener en cuenta los siguientes aspectos:
+
+\begin{enumerate}
+	\item \textbf{Eficiencia computacional}: Alguna aproximaciones, como las aproximaciones Gaussianas que se tratarán en secciones posteriores, hacen posible calcular la certidumbre en el tiempo usando polinomios en la dimensión del estado, es decir que el grado coincide con el número de estados. Otras podrían requerir funciones exponenciales. Por lo tanto en función de la aproximación matemática tendremos una aproximación que será más o menos rigurosa según el grado de complejidad del modelo.
+% * <amorellg@ull.edu.es> 2016-05-24T19:15:32.067Z:
+%
+% > eficiencia matemática
+%
+% una aproximación que será más o menos rigurosa
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:27:15.050Z.
+% * <amorellg@ull.edu.es> 2016-05-24T19:14:42.052Z:
+%
+% > usando polinomios en la dimensión del estado.
+%
+% con esto quieres decir que son polinomios de grado bajo?
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:28:07.506Z.
+    \item \textbf{Precisión de la aproximación}: Algunas aproximaciones pueden ser mucho más certeras que otras. Por ejemplo, las aproximaciones lineales Gaussianas están limitadas por una distribución unimodal, por otra parte la representación por medio del histograma permite una aproximación por distribuciones multimodales, aunque perderíamos precisión.
+    \item \textbf{Dificultad en la implementación}: La dificultad de implementar algoritmos probabilisticos depende de la variedad de factores, uno de ellos será la probabilidad de la medida $p( z_{t} \mid x_{t})$ y la probabilidad en la transición de los estados $p(x_{t} \mid u_{t},x_{t-1})$. 
+    Por lo tanto la dificultad de la implementación radica en las técnicas que utilicemos.
+\end{enumerate}
+En el siguiente capítulo trataremos con algunas aplicaciones de algoritmos Bayesianos en concreto con las distintas variantes de los filtros de Kalman.
+
+\section{Modelo de espacio-estado}
+Los modelos espacio-estado son en esencia una notación usada, y por lo tanto conveniente, para los problemas de estimación y control. 
+Estos modelos fueron desarrollados con el objetivo para hacer manejable lo que de otra manera sería un análisis demasiado complicado de asumir con respecto a la notación del problema. Por lo tanto esta notación nos simplificará mucho la notación para trabajar con todas las variables que nombramos anteriormente 
+
+Si consideramos un proceso dinámico descrito por una ecuación en diferencias de orden enésimo (similar a una ecuación diferencial) descrita de la siguiente forma:
+\begin{equation}\label{ecuacionendiferencias_orden_n}
+y_{i+1} = a_{0,i}y{i} + ... + a_{n-1,i}y_{i-n+1}+u_{i},i \ge 0
+\end{equation}
+donde $u_{i}$ es ruido de proceso blanco de media cero (el ruido blanco es una señal aleatoria que se caracteriza por el hecho de que sus valores de señal en dos tiempos diferentes no guardan correlación estadística) con la siguiente autocorrelación:
+\begin{equation}\label{Autocorrelacion}
+E(u_{i},u_{j}) = R_{u} = Q_{i}\delta_{ij}
+\end{equation}
+y los valores iniciales $(y_{0},y_{-1},...,y_{-n+1})$ son variables aleatorias con media-cero, con una matriz de covarianzas conocida de dimensiones nxn definida:
+\begin{equation}\label{matrizdecovarianza}
+P_{0} = E(y_{-j},y_{-k}),j,k\; \epsilon \;[0,n-1]
+\end{equation}
+También se asume que la correlación es cero para el siguiente caso:
+\begin{equation}\label{correlacion_cero}
+E(u_{i},y_{i}) = 0 \; para -n+1 \le j \le 0 \; e \; i\ge 0
+\end{equation}
+lo cual asegura  que \cite{AnIntroductionToTheKalmanFilter}:
+% * <amorellg@ull.edu.es> 2016-06-01T17:47:58.912Z:
+%
+% > según algunos textos
+%
+% esto queda raro, o citas algo concreto o yo no pondría algo así, quitarlo directamente digo
+%
+% ^ <alu0100765755@ull.edu.es> 2016-06-02T10:42:22.370Z.
+\begin{equation}\label{correlacion_cero_1}
+E(u_{i},y_{i}) = 0 ,i \ge j\ge 0
+\end{equation}
+En resumen, el ruido es estadísticamente independiente del proceso a ser estimado. La ecuación en diferencia puede ser escrita de la siguiente forma:
+\[
+\bar{x}_{i+1} \equiv 
+\begin{bmatrix}
+    y_{i+1} \\
+    y_{i}  \\
+    y_{i-1} \\
+    \vdots\\
+    y_{i-n+2}
+\end{bmatrix}
+=
+\begin{bmatrix}
+    a_{0} & a_{1} & \cdots & a_{n-2} & a_{n-1} \\
+    1 & 0 & \cdots & 0 & 0 \\
+    0 & 1 & \cdots & 0 & 0 \\
+    \vdots & \vdots & \cdots & \vdots & \vdots \\
+    0 & 0 & \cdots & 1 & 0
+\end{bmatrix}
+\begin{bmatrix}
+	y_{i} \\
+    y_{i-1} \\
+    y_{i-2} \\
+    \vdots\\
+    y_{i-n+1}
+\end{bmatrix} 
++ 
+\begin{bmatrix}
+	1 \\
+    0 \\
+    0 \\
+    \vdots\\
+    0
+\end{bmatrix}
+u_{i}
+\]
+esta ecuación nos conduce al modelo de espacio-estado que se escribe de la siguiente forma y también es conocida como ecuación de estados (que toma la forma como la ecuación \ref{modelodeproceso}):
+\begin{equation}\label{ecuaciondeestados}
+\bar{x}_{i+1} = A\bar{x}_{i} + B u_{i}
+\end{equation}
+la ecuación de medida se escribe de la siguiente forma (como ya habíamos visto en la ecuación \ref{ecuaciondemedidadeproceso}):
+\begin{equation}\label{ecuaciondemedida}
+\bar{y}_{i} = H_{i}\bar{x}_{i}
+\end{equation}
+La ecuación \ref{ecuaciondeestados} también conocida como modelo de proceso, representa la manera de calcular el nuevo estado en función de un estado inmediatamente anterior, es decir el estado actual ayuda a calcular el siguiente instante. 
+La forma exacta para realizar este cálculo no es otra que una combinación lineal entre el estado previo $\bar{x}_{i}$ también conocido como $x_{t}$ y el vector $u_{i}$ conocido como $u_{t+1}$. 
+La ecuación \ref{ecuaciondemedida} también conocida como modelo de medida, calcula las medidas del proceso o mejor dicho las observaciones que en el estado actual se denotan como $\bar{y}_{i}$ aunque en nuestra notación también las podemos escribir como $z_{t}$. 
+La medidas se derivan directamente del estado interno $\bar{x}_{i}$ conocido como $x_{t}$.
+% * <amorellg@ull.edu.es> 2016-05-24T19:18:09.874Z:
+%
+% > Estas dos ecuaciones se conocen comúnmente como modelo de proceso y modelo de medida, y son dos herramientas básicas para la mayoría de métodos de estimación lineales, el filtro de Kalman no es una excepción como veremos más adelante.
+%
+% Esto parece copy&paste muy claro, porque de esto ya has hablado varias veces en secciones anteriores
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:29:06.904Z:
+%
+% Si ! Es que esto estaba antes pero decidí cambiarlo y ahora se quedó algo cojo .
+%
+% ^ <alu0100765755@ull.edu.es> 2016-05-28T22:29:56.278Z.

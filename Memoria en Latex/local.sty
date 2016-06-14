@@ -1,0 +1,277 @@
+%%
+%% local.sty - Modificaciones locales al estilo del documento.
+%%
+%%   Copyright 2009-2010 Jesús Torres <jmtorres@ull.es>
+%%
+%% Esta obra está bajo licencia Creative Commons Reconocimiento 3.0 Unported
+%%
+% Redefinición de los entornos quotation y quote de KOMA-Script para utilizar
+% el entorno quoting del componente spanish de babel.
+\renewenvironment{quotation}{%
+  \list{}{\listparindent 1em%
+    \itemindent    \listparindent
+    \rightmargin   \leftmargin
+    \parsep        \z@ \@plus\p@
+  }%
+  \item\begin{quoting}\relax
+}{%
+  \end{quoting}\endlist
+}
+\renewenvironment{quote}{%
+  \list{}{\rightmargin\leftmargin}%
+  \item\begin{quoting}\relax
+}{%
+  \end{quoting}\endlist
+}
+%%
+% Redefinición del comando \@chapter para que aparezca el prefijo de los
+% capítulos en la tabla de contenidos.
+\def\@chapter[#1]#2{\ifnum \c@secnumdepth >\m@ne
+    \if@mainmatter
+      \refstepcounter{chapter}%
+      \@maybeautodot\thechapter
+      \typeout{\@chapapp\space\thechapter.}%
+      \addcontentsline{toc}{chapter}{\chapappifchapterprefix{\nobreakspace}%
+      \protect\numberline{\thechapter}#1}%
+      \if@chaptertolists
+        \doforeachtocfile{%
+          \iftocfeature{\@currext}{chapteratlist}{%
+            \addcontentsline{\@currext}{chapteratlist}{%
+              \protect\numberline{\thechapter}#1}%
+          }{}%
+        }%
+        \@ifundefined{float@addtolists}{}{%
+          \scr@float@addtolists@warning
+          \scr@ifundefinedorrelax{@currentHref}{%
+            \float@addtolists{%
+              \protect\contentsline{chapteratlist}{%
+                \protect\numberline{\thechapter}#1}{\thepage}%
+            }%
+          }{%
+            \float@addtolists{%
+              \protect\contentsline{chapteratlist}{%
+                \protect\numberline{\thechapter}#1}{\thepage}{\@currentHref}%
+            }%
+          }%
+        }%
+      \fi
+    \else
+      \addcontentsline{toc}{chapter}{#1}%
+      \if@chaptertolists
+        \doforeachtocfile{%
+          \iftocfeature{\@currext}{chapteratlist}{%
+            \addcontentsline{\@currext}{chapteratlist}{#1}%
+          }{}%
+        }%
+        \@ifundefined{float@addtolists}{}{%
+          \scr@float@addtolists@warning
+          \scr@ifundefinedorrelax{@currentHref}{%
+            \float@addtolists{%
+              \protect\contentsline{chapteratlist}{#1}{\thepage}%
+            }%
+          }{%
+            \float@addtolists{%
+              \protect\contentsline{chapteratlist}{#1}{\thepage}{\@currentHref}%
+            }%
+          }%
+        }%
+      \fi
+    \fi
+  \else
+    \addcontentsline{toc}{chapter}{#1}%
+    \if@chaptertolists
+      \doforeachtocfile{%
+        \iftocfeature{\@currext}{chapteratlist}{%
+          \addcontentsline{\@currext}{chapteratlist}{#1}%
+        }{}%
+      }%
+      \@ifundefined{float@addtolists}{}{%
+        \scr@float@addtolists@warning
+        \scr@ifundefinedorrelax{@currentHref}{%
+          \float@addtolists{%
+            \protect\contentsline{chapteratlist}{#1}{\thepage}%
+          }%
+        }{%
+          \float@addtolists{%
+            \protect\contentsline{chapteratlist}{#1}{\thepage}{\@currentHref}%
+          }%
+        }%
+      }%
+    \fi
+  \fi
+  \chaptermark{#1}%
+  \ifdim \@chapterlistsgap>\z@
+    \doforeachtocfile{%
+      \iftocfeature{\@currext}{chapteratlist}{%
+        \addtocontents{\@currext}{\protect\addvspace{\@chapterlistsgap}}%
+      }{}%
+    }%
+    \@ifundefined{float@addtolists}{}{%
+      \scr@float@addtolists@warning
+      \float@addtolists{\protect\addvspace{\@chapterlistsgap}}%
+    }%
+  \fi
+  \if@twocolumn
+    \if@at@twocolumn
+      \@makechapterhead{#2}%
+    \else
+      \@topnewpage[\@makechapterhead{#2}]%
+    \fi
+  \else
+    \@makechapterhead{#2}%
+    \@afterheading
+  \fi
+}
+%%
+% Otra opción para lo anterior pero redefiniendo \addcontentsline.
+% No funciona correctamente; pues también añade el prefijo a los capítulos
+% insertados mediante el comando \addchap (capítulos no numerados).
+% \let\oldaddcontentsline\addcontentsline
+% \renewcommand*\addcontentsline[3]{%
+%   \if@mainmatter
+%     \def\tempa{#2}\def\tempb{chapter}
+%     \ifx\tempa\tempb
+%       \oldaddcontentsline{#1}{#2}{\chapappifchapterprefix\space#3}
+%     \else
+%       \oldaddcontentsline{#1}{#2}{#3}
+%     \fi
+%   \else
+%     \oldaddcontentsline{#1}{#2}{#3}
+%   \fi
+% }
+%%
+% Añadir un punto detrás del número de sección en los marcadores del PDF
+\def\Hy@numberline#1{#1. }
+%%
+% Tablas y figuras con títulos del mismo tamaño (si se colocan debajo)
+\newsavebox{\figuredefinescaptionwidth@box}
+\newlength{\figuredefinescaptionwidth@width}
+\newenvironment{figuredefinescaptionwidth}{%
+  \begin{lrbox}{\figuredefinescaptionwidth@box}%
+}{%
+  \end{lrbox}%
+  \global\sbox\figuredefinescaptionwidth@box{%
+    \usebox\figuredefinescaptionwidth@box}%
+  \aftergroup\figuredefinescaptionwidth@usebox%
+}
+\newcommand*{\figuredefinescaptionwidth@usebox}{%
+  \settowidth{\figuredefinescaptionwidth@width}{%
+    \usebox{\figuredefinescaptionwidth@box}}%
+  \setcapwidth{\figuredefinescaptionwidth@width}%
+  \usebox{\figuredefinescaptionwidth@box}
+}
+%%
+% Operadores matemáticos adicionales
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\diag}{diag}
+\DeclareMathOperator*{\trace}{tr}
+\DeclareMathOperator*{\var}{var}
+\DeclareMathOperator*{\bigo}{\mathcal{O}}
+%%
+% Redefinicion de autoref con plurales y mayúsculas
+\let\orgautoref\autoref
+\providecommand{\Autoref} % Mayúsculas
+  {\def\equationautorefname{La ecuación}%
+   \def\itemautorefname{El elemento}%
+   \def\figureautorefname{La figura}%
+   \def\subfigureautorefname{La figura}%
+   \def\tableautorefname{La tabla}%
+   \def\appendixautorefname{El apéndice}%
+   \def\chapterautorefname{El capítulo}%
+   \def\sectionautorefname{El apartado}%
+   \def\subsectionautorefname{El apartado}%
+   \def\subsubsectionautorefname{El apartado}%
+   \def\algorithmautorefname{El algoritmo}%
+   \orgautoref}
+\providecommand{\Autorefs} % Mayúsculas y plural
+  {\def\equationautorefname{Las ecuaciones}%
+   \def\itemautorefname{Los elementos}%
+   \def\figureautorefname{Las figuras}%
+   \def\subfigureautorefname{Las figuras}%
+   \def\tableautorefname{Las tablas}%
+   \def\appendixautorefname{Los apéndices}%
+   \def\chapterautorefname{Los capítulos}%
+   \def\sectionautorefname{Los apartados}%
+   \def\subsectionautorefname{Los apartados}%
+   \def\subsubsectionautorefname{Los apartados}%
+   \def\algorithmautorefname{Los algoritmos}%
+   \orgautoref}
+\renewcommand{\autoref} % autoref
+  {\def\equationautorefname{la ecuación}%
+   \def\itemautorefname{el elemento}%
+   \def\figureautorefname{la figura}%
+   \def\subfigureautorefname{la figura}%
+   \def\tableautorefname{la tabla}%
+   \def\appendixautorefname{el apéndice}%
+   \def\chapterautorefname{el capítulo}%
+   \def\sectionautorefname{el apartado}%
+   \def\subsectionautorefname{el apartado}%
+   \def\subsubsectionautorefname{el apartado}%
+   \def\algorithmautorefname{el algoritmo}%
+   \orgautoref}
+\providecommand{\autorefs} % plural
+  {\def\equationautorefname{las ecuaciones}%
+   \def\itemautorefname{los elementos}%
+   \def\figureautorefname{las figuras}%
+   \def\subfigureautorefname{las figuras}%
+   \def\tableautorefname{las tablas}%
+   \def\appendixautorefname{los apéndices}%
+   \def\chapterautorefname{los capítulos}%
+   \def\sectionautorefname{los apartados}%
+   \def\subsectionautorefname{los apartados}%
+   \def\subsubsectionautorefname{los apartados}%
+   \def\algorithmautorefname{los algoritmos}%
+   \orgautoref}
+\providecommand{\Vautoref}[1]
+  {\Autoref{#1}\vpageref[\unskip]{#1}}
+\providecommand{\Vautorefs}[1]
+  {\Autorefs{#1}\vpageref[\unskip]{#1}}
+\providecommand{\vautoref}[1]
+  {\autoref{#1}\vpageref[\unskip]{#1}}
+\providecommand{\vautorefs}[1]
+  {\autorefs{#1}\vpageref[\unskip]{#1}}
+%%
+% Formato de la portada
+\renewcommand*\maketitle{%
+  \begin{titlepage}
+    \setparsizes{\z@}{\z@}{\z@\@plus 1fil}\par@updaterelative
+    \ifx\@titlehead\@empty \else\centering
+      \begin{minipage}[t]{0.75\textwidth}%
+        \centering\large\@titlehead
+      \end{minipage}\par
+    \fi
+    \vskip 4em
+    \begin{center}
+      \ifx\@subject\@empty \else
+        {\subject@font \@subject \par}%
+        \vskip 1em
+      \fi
+      {\titlefont\Huge \@title\par}%
+      \vskip 1em
+      {\ifx\@subtitle\@empty\else\usekomafont{subtitle}\@subtitle\par\fi}%
+      \vfill\null
+      {\Large \lineskip 0.75em
+        \begin{tabular}[t]{c}
+          \@author
+        \end{tabular}\par
+      }%
+      \vskip 1em
+      {\Large \@date \par}%
+    \end{center}\par
+  \end{titlepage}
+}
+%%
+% Formato del encabezado de los capítulos.
+\usepackage{fancybox}
+\renewcommand*{\chapterformat}{%
+%    \thisfancyput(1.5cm, -3.68cm){%
+   \thisfancyput(-0.2cm, -1.38cm){%
+    \parbox{\textwidth}{%
+      {\normalfont\sectfont\nobreak\size@chapter{}%
+        \hfill\parbox{3cm}{\centering%
+        \setstretch{2.9}\chapappifchapterprefix{\nobreakspace}\\*%
+        {\fontsize{90}{90}\selectfont\thechapter}}}%
+    }%
+  }%
+}
