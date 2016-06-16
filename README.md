@@ -26,4 +26,19 @@ Finalmente, con ayuda de esta herramienta obtendremos conclusiones sobre cuál e
 Funcionamiento del entorno experimental
 --------------------
 
-Coming soon
+En el directorio raíz tenemos los dos entornos experimentales desarrollados para este trabajo, un entorno bidimensional utilizando MATLAB y un entorno tridimensional utilizando V-REP.
+Estos entornos se encuentran en los directorios "Experimentos en Matlab" y "Experimentos V-REP" respectivamente.
+Estos scripts siguen el algoritmo especificado en el capítulo 5 de la memoria.
+Es importante inicializar todos los parámetros de forma correcta para que la estimación realizada por los filtros sea correcta, además si la simulación se realiza en V-REP hay que tener especial precaución con colocar la IP del equipo cliente de forma correcta.
+Para lanzar V-REP y poder trabajar por medio de la API con MATLAB, es necesario lanzar el programa con la siguiente sentencia:
+
+sh vrep.sh -gREMOTEAPISERVERSERVICE_19999_false_true
+
+Si queremos lanzar el programa sin ejecutar el modo gráfico la sentencia sería:
+
+sh vrep.sh -h -gREMOTEAPISERVERSERVICE_19999_false_true
+
+Por otra parte, hemos añadido las escenas y los modelos utilizados en las simulaciones para que los experimentos realizados sean reproducibles.
+
+Por último, también hemos añadido la memoria de este trabajo en formato PDF. 
+Para más información acerca de la implementación o cualquier otro aspecto puede consultar dicho documento.
