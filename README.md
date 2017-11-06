@@ -11,12 +11,16 @@ Estos scripts siguen el algoritmo especificado en el capítulo 5 de la memoria.
 Es importante inicializar todos los parámetros de forma correcta para que la estimación realizada por los filtros sea correcta, además si la simulación se realiza en V-REP hay que tener especial precaución con colocar la IP del equipo cliente de forma correcta.
 Para lanzar V-REP y poder trabajar por medio de la API con MATLAB, es necesario lanzar el programa con la siguiente sentencia:
 
-```sh vrep.sh -gREMOTEAPISERVERSERVICE_19999_false_true
+```
+sh vrep.sh -gREMOTEAPISERVERSERVICE_19999_false_true
+
 ```
 
 Si queremos lanzar el programa sin ejecutar el modo gráfico la sentencia sería:
 
-```sh vrep.sh -h -gREMOTEAPISERVERSERVICE_19999_false_true
+```
+sh vrep.sh -h -gREMOTEAPISERVERSERVICE_19999_false_true
+
 ```
 
 Por otra parte, hemos añadido las escenas y los modelos utilizados en las simulaciones para que los experimentos realizados sean reproducibles.
