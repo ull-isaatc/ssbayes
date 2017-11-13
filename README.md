@@ -28,6 +28,7 @@ Por otra parte, hemos añadido las escenas y los modelos utilizados en las simul
 ## Herramientas necesarias
 
 - [Matlab](https://www.mathworks.com/products/matlab.html) -  Herramienta de software matemático que ofrece un entorno de desarrollo integrado (IDE) con un lenguaje de programación propio.
+- [ToolBox-Matlab](http://becs.aalto.fi/en/research/bayes/ekfukf/) - Toolbox necesaria para trabajar con Filtros de Kalman en Matlab.
 - [V-REP](http://www.coppeliarobotics.com/) - Entorno interactivo de simulación de robots.
 - [V-REP API](http://www.coppeliarobotics.com/helpFiles/en/apiOverview.htm) - Archivos necesarios para el correcto funcionamiento de la API de V-REP.
 
