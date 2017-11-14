@@ -35,7 +35,7 @@ len = 100 ; %Tamaño asignado para mostrar las mediciones por parte de las baliz
 Radio = 0.3 ; %Radio del dibujo
 radioruedas = 0.1 ; %definimos el radio de las ruedas de nuestro robot
 intervalo_conf = 10;
-Modelo_medida = 2 ;
+Modelo_medida = 1 ;
 
 %Importamos el modelo de medida y sus derivadas (en este caso medimos la
 %distancia)
@@ -74,7 +74,7 @@ Balizas = [Baliza_1 Baliza_2 Baliza_3 Baliza_4 Baliza_5 Baliza_6] %Guardamos tod
 fprintf(' -> La posición de la primera baliza \n    es X= %f  e Y= %f \n',Baliza_1(1,1),Baliza_1(2,1))
 fprintf(' -> La posición de la segunda baliza \n    es X= %f  e Y= %f \n',Baliza_2(1,1),Baliza_2(2,1))
 
-sd_baliza = 0.1 ; %Parámetro de afectación de ruido de nuestro robot
+sd_baliza = 0.05 ; %Parámetro de afectación de ruido de nuestro robot
 sd_odometria = 0.05 ; %Parámetro de ruido que aplicamos a la odometría 
 dt = 0.1 ; %Diferencial de tiempo por el que realizamos nuestra simulación
 
@@ -334,8 +334,7 @@ if preguntar_simular == true
       PP_ckf(:,:,k) = P_ckf;
       Y_completo_CKF = [Y_completo_CKF y_completo];
       
-      
-      end
+end
      
     
  

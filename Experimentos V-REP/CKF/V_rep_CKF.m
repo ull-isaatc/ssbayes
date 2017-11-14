@@ -33,7 +33,7 @@ function [Robot_1,CKF_RMS] = V_rep_CKF(Escena,sd_baliza,Modelo_medida)
        
         
           if Escena == 1 
-            link = '/home/ivan/Dropbox/TFG/V-REP/Escenas-Exp/Cuadrado_LF_01.ttt';
+            link = '../../Escenas/Cuadrado_LF_01.ttt';
         end
         if Escena == 2
             link = '/home/ivan/Dropbox/TFG/V-REP/Escenas-Exp/Cuadrado_LF_003.ttt';
