@@ -22,7 +22,7 @@ function varargout = EKF_GUI(varargin)
 
 % Edit the above text to modify the response to help EKF_GUI
 
-% Last Modified by GUIDE v2.5 14-Nov-2017 01:58:11
+% Last Modified by GUIDE v2.5 16-Nov-2017 01:59:03
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -81,18 +81,19 @@ function beginbutton_Callback(hObject, eventdata, handles)
 rng(1); %Colocamos la misma semilla para que el script siempre se ejecute en las mismas condiciones
 
 %Establecemos la velocidad para la simulación del experimento
+pause on
 
 velocidad_simulacion = 0.01 ;
-cell = get(handles.mostrar_simulacion_in,'string')
-mostrar_simulacion = cell2mat(cell(get(handles.mostrar_simulacion_in,'value')))
-cell = get(handles.preguntar_simular_in,'string')
-preguntar_simular = cell2mat(cell(get(handles.preguntar_simular_in,'value')));
+mostrar_simulacion = true;
+preguntar_simular = false;
 depuracion = false ;
 steps = 1;
 Radio = 0.3 ; %Radio del dibujo
 radioruedas = 0.1 ; %definimos el radio de las ruedas de nuestro robot
 Intervalo_conf = 10;
-Modelo_medida = 2;
+cell = get(handles.Modelo_med,'Value');
+cell = str2mat(cell);
+Modelo_medida = cell;
 %Importamos el modelo de medida y sus derivadas
 
 if Modelo_medida == 1 %Modelo de medida de distancia
@@ -460,7 +461,7 @@ if mostrar_simulacion == true
             set(Robot_real(7),'xdata',linea_abajo1(1,:));set(Robot_real(7),'ydata',linea_abajo1(2,:));
             set(Robot_real(8),'xdata',linea_arriba1(1,:));set(Robot_real(8),'ydata',linea_arriba1(2,:));
             
-            pause(velocidad_simulacion)
+            drawnow;
          
           end
 end
@@ -524,6 +525,61 @@ function preguntar_simular_in_Callback(hObject, eventdata, handles)
 % --- Executes during object creation, after setting all properties.
 function preguntar_simular_in_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to preguntar_simular_in (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function axes1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to axes1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: place code in OpeningFcn to populate axes1
+
+
+
+function vel_sim_Callback(hObject, eventdata, handles)
+% hObject    handle to vel_sim (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of vel_sim as text
+%        str2double(get(hObject,'String')) returns contents of vel_sim as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function vel_sim_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to vel_sim (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in Modelo_med.
+function Modelo_med_Callback(hObject, eventdata, handles)
+% hObject    handle to Modelo_med (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns Modelo_med contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from Modelo_med
+
+
+% --- Executes during object creation, after setting all properties.
+function Modelo_med_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Modelo_med (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
