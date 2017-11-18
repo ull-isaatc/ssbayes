@@ -1,3 +1,5 @@
+% Copyright (C) 2017 Iván Rodríguez Méndez
+
 function varargout = EKF_GUI(varargin)
 % EKF_GUI MATLAB code for EKF_GUI.fig
 %      EKF_GUI, by itself, creates a new EKF_GUI or raises the existing
@@ -22,7 +24,7 @@ function varargout = EKF_GUI(varargin)
 
 % Edit the above text to modify the response to help EKF_GUI
 
-% Last Modified by GUIDE v2.5 16-Nov-2017 01:59:03
+% Last Modified by GUIDE v2.5 18-Nov-2017 02:22:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -82,6 +84,8 @@ rng(1); %Colocamos la misma semilla para que el script siempre se ejecute en las
 
 %Establecemos la velocidad para la simulación del experimento
 pause on
+hold off
+
 
 velocidad_simulacion = 0.01 ;
 mostrar_simulacion = true;
@@ -117,19 +121,22 @@ disp('  Basado en la toolbox de Simo Särkkä')
 disp(' ')
 disp('PARÁMETROS DE SIMULACIÓN:')
 
-Baliza_1 = [1;5] ;
-Baliza_2 = [8;5];
-Baliza_3 = [5;8];
-Baliza_4 = [9;10];
-Baliza_5 = [3;1];
+balizas=get(handles.uitable4,'Data');
+balizas = cell2mat(balizas);
+
+Baliza_1 = [balizas(1,1);balizas(1,2)] ;
+Baliza_2 = [balizas(2,1);balizas(2,2)];
+Baliza_3 = [balizas(3,1);balizas(3,2)];
+Baliza_4 = [balizas(4,1);balizas(4,2)];
+Baliza_5 = [balizas(5,1);balizas(5,2)];
 
 Balizas = [Baliza_1 Baliza_2 Baliza_3 Baliza_4 Baliza_5] %Guardamos toda la informacion de las balizas
 
 fprintf(' -> La posición de la primera baliza \n    es X= %f  e Y= %f \n',Baliza_1(1,1),Baliza_1(2,1))
 fprintf(' -> La posición de la segunda baliza \n    es X= %f  e Y= %f \n',Baliza_2(1,1),Baliza_2(2,1))
 
-sd_baliza = 0.0001 ; %Parámetro de afectación de ruido de nuestro robot
-sd_odometria = 0.00001 ; %Parámetro de ruido que aplicamos a la odometría 
+sd_baliza = str2double(get(handles.ruido_med,'String')); %Parámetro de afectación de ruido de nuestro robot
+sd_odometria = str2double(get(handles.ruido_odo,'String')) ; %Parámetro de ruido que aplicamos a la odometría 
 dt = 0.1 ; %Diferencial de tiempo por el que realizamos nuestra simulación
 
 fprintf(' -> La afectación del ruido es %f \n',sd_baliza)
@@ -153,8 +160,8 @@ fprintf(' -> El radio de las ruedas es %f metros \n',radioruedas)
 V_LINEAL = 0.5; %Velocidad lineal máxima
 V_ANGULAR = 7.2; %Velocidad de rotación máxima
 Limite_trayectoria = 3000 ; %Definimos el límite de la trayectoria, es decir la cantidad máxima de puntos que cogemos.
-dist_max = 5 ; %distancia maxima que es capaz de medir el telemetro.
-
+dist_max = str2double(get(handles.dist_max,'String')) ; %distancia maxima que es capaz de medir el telemetro.
+clc
 %Definimos la pose inicial que tendra nuestro robot
 x_inicial= 0;
 y_inicial= 0;
@@ -176,7 +183,15 @@ trayectoria = [x_inicial;y_inicial;alfa_inicial];
 %Calculamos los objetivos que tenemos que alcanzar, es decir
 %las coordenadas que tienen para poder alcanzarlas.
 disp('Calculando la localización de los objetivos...');
-objetivos = [0 0;1 1 ; 2 5 ;3 3; 5 3 ; 7 7 ; 8 12 ]';
+
+datos=get(handles.uitable2,'Data');
+datos = cell2mat(datos);
+objetivos = zeros(size(datos));
+for y=1:size(datos,1)
+    objetivos(y,:) = datos(y,:);
+end
+objetivos = objetivos';
+    
 disp('posición de los objetivos calculada');
 
 %Definimos un indice para recorrer el vector de objetivos (para
@@ -477,17 +492,10 @@ fprintf('  El RMS de la rotación es de %f \n',ekf_rmse_r)
 %matrices son las correctas y que las variables tienen el valor que
 %esperamos obtener
 
- if depuracion == true 
-     disp(' ')
-     disp('MOSTRAMOS LAS VARIABLES DE DEPURACIÓN:')
-     disp(' ')
-     fprintf('El tamaño de X_mod es: %f \n',size(X_mod(1,:)))
-     fprintf('El tamaño de Y es: %f \n',size(Y(1,:)))
-     fprintf('El tamaño de MM es: %f \n',size(MM(1,:)))
-     A
-     Q
-     
- end
+set(handles.rms_xy,'String',num2str(ekf_rmse))
+set(handles.rms_rot,'String',num2str(ekf_rmse_r))
+
+clear M P A Q Odom Y_adap y_completo MM PP 
 
 % --- Executes on selection change in mostrar_simulacion_in.
 function mostrar_simulacion_in_Callback(hObject, eventdata, handles)
@@ -588,3 +596,134 @@ function Modelo_med_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+
+function ruido_med_Callback(hObject, eventdata, handles)
+% hObject    handle to ruido_med (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of ruido_med as text
+%        str2double(get(hObject,'String')) returns contents of ruido_med as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function ruido_med_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ruido_med (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit4_Callback(hObject, eventdata, handles)
+% hObject    handle to edit4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit4 as text
+%        str2double(get(hObject,'String')) returns contents of edit4 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit4_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function ruido_odo_Callback(hObject, eventdata, handles)
+% hObject    handle to ruido_odo (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of ruido_odo as text
+%        str2double(get(hObject,'String')) returns contents of ruido_odo as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function ruido_odo_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ruido_odo (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function dt_in_Callback(hObject, eventdata, handles)
+% hObject    handle to dt_in (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of dt_in as text
+%        str2double(get(hObject,'String')) returns contents of dt_in as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function dt_in_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to dt_in (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function dist_max_Callback(hObject, eventdata, handles)
+% hObject    handle to dist_max (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of dist_max as text
+%        str2double(get(hObject,'String')) returns contents of dist_max as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function dist_max_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to dist_max (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function uitable2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to uitable2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+
+% --- Executes during object creation, after setting all properties.
+function axes3_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to axes3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+imshow('logo-vector-universidad-la-laguna.jpg')
+% Hint: place code in OpeningFcn to populate axes3
