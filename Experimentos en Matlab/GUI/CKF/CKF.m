@@ -1,112 +1,38 @@
-% Copyright (C) 2017 Iván Rodríguez Méndez
+% Script para la localización de un robot en un entorno de 2 dimensiones
+% usando el filtro de Cubatura de Kalman.
 
-function varargout = EKF_GUI(varargin)
-% EKF_GUI MATLAB code for EKF_GUI.fig
-%      EKF_GUI, by itself, creates a new EKF_GUI or raises the existing
-%      singleton*.
+% Copyright (C) 2016 Iván Rodríguez Méndez, Antonio Luis
+% Morell González, Leopoldo Acosta Sánchez
 %
-%      H = EKF_GUI returns the handle to a new EKF_GUI or the handle to
-%      the existing singleton*.
-%
-%      EKF_GUI('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in EKF_GUI.M with the given input arguments.
-%
-%      EKF_GUI('Property','Value',...) creates a new EKF_GUI or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before EKF_GUI_OpeningFcn gets called.  An
-%      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to EKF_GUI_OpeningFcn via varargin.
-%
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
-%
-% See also: GUIDE, GUIDATA, GUIHANDLES
-
-% Edit the above text to modify the response to help EKF_GUI
-
-% Last Modified by GUIDE v2.5 18-Nov-2017 02:22:53
-
-% Begin initialization code - DO NOT EDIT
-gui_Singleton = 1;
-gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @EKF_GUI_OpeningFcn, ...
-                   'gui_OutputFcn',  @EKF_GUI_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
-if nargin && ischar(varargin{1})
-    gui_State.gui_Callback = str2func(varargin{1});
-end
-
-if nargout
-    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
-else
-    gui_mainfcn(gui_State, varargin{:});
-end
-% End initialization code - DO NOT EDIT
+% This software is distributed under the GNU General Public 
+% Licence (version 3 or later); please refer to the file 
+% Licence.txt, included with the software, for details.
 
 
-% --- Executes just before EKF_GUI is made visible.
-function EKF_GUI_OpeningFcn(hObject, eventdata, handles, varargin)
-% This function has no output args, see OutputFcn.
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to EKF_GUI (see VARARGIN)
-
-% Choose default command line output for EKF_GUI
-handles.output = hObject;
-
-% Update handles structure
-guidata(hObject, handles);
-
-% UIWAIT makes EKF_GUI wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
-
-% --- Outputs from this function are returned to the command line.
-function varargout = EKF_GUI_OutputFcn(hObject, eventdata, handles) 
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Get default command line output from handles structure
-varargout{1} = handles.output;
-
-
-% --- Executes on button press in beginbutton.
-function beginbutton_Callback(hObject, eventdata, handles)
-% hObject    handle to beginbutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 rng(1); %Colocamos la misma semilla para que el script siempre se ejecute en las mismas condiciones
+clear % Eliminamos todas las variables que guardamos en el workspace
+clc;
+clf; %Limpiamos el workSpace y las figuras 
 
 %Establecemos la velocidad para la simulación del experimento
-pause on
-hold off
-
 
 velocidad_simulacion = 0.01 ;
 mostrar_simulacion = true;
-preguntar_simular = false;
+preguntar_simular = true;
 depuracion = false ;
 steps = 1;
 Radio = 0.3 ; %Radio del dibujo
-radioruedas = 0.1 ; %definimos el radio de las ruedas de nuestro robot
+radioruedas = 0.1 ; %Definimos el radio de las ruedas de nuestro robot
 Intervalo_conf = 10;
-cell = get(handles.Modelo_med,'Value');
-cell = str2mat(cell);
-Modelo_medida = cell;
+Modelo_medida = 2;
+
 %Importamos el modelo de medida y sus derivadas
 
 if Modelo_medida == 1 %Modelo de medida de distancia
     h_func = @bot_dist_h;
-    dh_dx_func = @bot_dist_dh;
 end
 if Modelo_medida == 2 %Modelo de medida de rotaciones
     h_func = @bot_h;
-    dh_dx_func = @bot_dh_dx;
 end
 
 
@@ -121,22 +47,19 @@ disp('  Basado en la toolbox de Simo Särkkä')
 disp(' ')
 disp('PARÁMETROS DE SIMULACIÓN:')
 
-balizas=get(handles.uitable4,'Data');
-balizas = cell2mat(balizas);
-
-Baliza_1 = [balizas(1,1);balizas(1,2)] ;
-Baliza_2 = [balizas(2,1);balizas(2,2)];
-Baliza_3 = [balizas(3,1);balizas(3,2)];
-Baliza_4 = [balizas(4,1);balizas(4,2)];
-Baliza_5 = [balizas(5,1);balizas(5,2)];
+Baliza_1 = [1;5] ;
+Baliza_2 = [8;5];
+Baliza_3 = [5;8];
+Baliza_4 = [9;10];
+Baliza_5 = [3;1];
 
 Balizas = [Baliza_1 Baliza_2 Baliza_3 Baliza_4 Baliza_5] %Guardamos toda la informacion de las balizas
 
 fprintf(' -> La posición de la primera baliza \n    es X= %f  e Y= %f \n',Baliza_1(1,1),Baliza_1(2,1))
 fprintf(' -> La posición de la segunda baliza \n    es X= %f  e Y= %f \n',Baliza_2(1,1),Baliza_2(2,1))
 
-sd_baliza = str2double(get(handles.ruido_med,'String')); %Parámetro de afectación de ruido de nuestro robot
-sd_odometria = str2double(get(handles.ruido_odo,'String')) ; %Parámetro de ruido que aplicamos a la odometría 
+sd_baliza = 0.0001 ; %Parámetro de afectación de ruido de nuestro robot
+sd_odometria = 0.00001 ; %Parámetro de ruido que aplicamos a la odometría 
 dt = 0.1 ; %Diferencial de tiempo por el que realizamos nuestra simulación
 
 fprintf(' -> La afectación del ruido es %f \n',sd_baliza)
@@ -160,8 +83,8 @@ fprintf(' -> El radio de las ruedas es %f metros \n',radioruedas)
 V_LINEAL = 0.5; %Velocidad lineal máxima
 V_ANGULAR = 7.2; %Velocidad de rotación máxima
 Limite_trayectoria = 3000 ; %Definimos el límite de la trayectoria, es decir la cantidad máxima de puntos que cogemos.
-dist_max = str2double(get(handles.dist_max,'String')) ; %distancia maxima que es capaz de medir el telemetro.
-clc
+dist_max = 5 ; %distancia maxima que es capaz de medir el telemetro.
+
 %Definimos la pose inicial que tendra nuestro robot
 x_inicial= 0;
 y_inicial= 0;
@@ -183,15 +106,7 @@ trayectoria = [x_inicial;y_inicial;alfa_inicial];
 %Calculamos los objetivos que tenemos que alcanzar, es decir
 %las coordenadas que tienen para poder alcanzarlas.
 disp('Calculando la localización de los objetivos...');
-
-datos=get(handles.uitable2,'Data');
-datos = cell2mat(datos);
-objetivos = zeros(size(datos));
-for y=1:size(datos,1)
-    objetivos(y,:) = datos(y,:);
-end
-objetivos = objetivos';
-    
+objetivos = [0 0;1 1 ; 2 5 ;3 3; 5 3 ; 7 7 ; 8 12 ]';
 disp('posición de los objetivos calculada');
 
 %Definimos un indice para recorrer el vector de objetivos (para
@@ -293,7 +208,7 @@ hold on
 Representar_obj(objetivos); %Representamos la localización de los objetivos en la escena.
  
  M = [0;0;0];
- P = diag([0 0 0 ]);
+ P = diag([0.1 0.1 0.1 ]);
  R = sd_baliza^2 + sd_odometria^2; 
  
  qx = 0.1 ;
@@ -330,19 +245,20 @@ Representar_obj(objetivos); %Representamos la localización de los objetivos en 
  disp('¡Comienza la simulación!')
  Y_completo = [];
  for k=1:size(Y,2) %La dimensión del bucle es tan grande como la trayectoria o el número de medidas
-     % Seguimiento con el EKF
-      
-     [M,P] = ekf_predict1(M,P,A,Q,Odom(:,k));
+     % Seguimiento con el CKF
+     M = (Odom(:,k));
+     [M,P] = ckf_predict(M,P,A,Q);
+     M = (9*Odom(:,k) + 1*M)/10 ; 
      [Y_adap,Balizas_adap,y_completo] = Limitar_medida(Y(:,k),Y_r(:,k),Modelo_medida,Balizas,dist_max);
-     [M,P] = ekf_update1(M,P,Y_adap,dh_dx_func,R*eye(size(Balizas_adap,2)),h_func,[],Balizas_adap);
+     [M,P] = ckf_update(M,P,Y_adap,h_func,R*eye(size(Balizas_adap,2)),Balizas_adap);
      MM(:,k) = M ;
      PP(:,:,k) = P;
      Y_completo = [Y_completo y_completo];
      
  end
 
- ekf_rmse = sqrt(mean((X_mod_ruido(1,:)-MM(1,:)).^2+(X_mod_ruido(2,:)-MM(2,:)).^2));
- ekf_rmse_r = sqrt(mean((X_mod_ruido(3,:)-MM(3,:)).^2));
+ ckf_rmse = sqrt(mean((X_mod_ruido(1,:)-MM(1,:)).^2+(X_mod_ruido(2,:)-MM(2,:)).^2));
+ ckf_rmse_r = sqrt(mean((X_mod_ruido(3,:)-MM(3,:)).^2));
  
 if mostrar_simulacion == true 
     %Representaciones gráficas de los resultados de la estimación 
@@ -373,10 +289,10 @@ if mostrar_simulacion == true
                Baliza_5(1),Baliza_5(2),'k^');
      
       if Modelo_medida == 1
-        title('Location using EKF1 (Distance)')
+        title('Localización usando CKF (Distancia)')
       end
       if Modelo_medida == 2
-          title('Location using EKF1 (Angle)')
+          title('Localización usando CKF (Ángulo)')
       end
      
       x_min = min(objetivos(1,:))-2;
@@ -389,8 +305,8 @@ if mostrar_simulacion == true
       
       %Colocamos unas marcas de texto en la representación
       
-      text(x_inicial-1,y_inicial-1,'START')
-      texto = 'LM ';
+      text(x_inicial-1,y_inicial-1,'SALIDA')
+      texto = 'Baliza ';
       b = 1;
       a = texto;
       for tex_i=1:size(Balizas,2)
@@ -476,7 +392,7 @@ if mostrar_simulacion == true
             set(Robot_real(7),'xdata',linea_abajo1(1,:));set(Robot_real(7),'ydata',linea_abajo1(2,:));
             set(Robot_real(8),'xdata',linea_arriba1(1,:));set(Robot_real(8),'ydata',linea_arriba1(2,:));
             
-            drawnow;
+            pause(velocidad_simulacion)
          
           end
 end
@@ -485,245 +401,31 @@ disp(' ')
 disp('Simulación finalizada')
 disp(' ')
 
-fprintf('  El RMS de las coordenadas x e y, es de %f \n',ekf_rmse)
+fprintf('  El RMS de las coordenadas x e y, es de %f \n',ckf_rmse)
 disp(' ')
-fprintf('  El RMS de la rotación es de %f \n',ekf_rmse_r)
+fprintf('  El RMS de la rotación es de %f \n',ckf_rmse_r)
 %Creamos un bloque de depuración para comprobar que las dimensiones de las
 %matrices son las correctas y que las variables tienen el valor que
 %esperamos obtener
 
-set(handles.rms_xy,'String',num2str(ekf_rmse))
-set(handles.rms_rot,'String',num2str(ekf_rmse_r))
+ if depuracion == true 
+     disp(' ')
+     disp('MOSTRAMOS LAS VARIABLES DE DEPURACIÓN:')
+     disp(' ')
+     fprintf('El tamaño de X_mod es: %f \n',size(X_mod(1,:)))
+     fprintf('El tamaño de Y es: %f \n',size(Y(1,:)))
+     fprintf('El tamaño de MM es: %f \n',size(MM(1,:)))
+     A
+     Q
+     
+ end
+ 
+ 
+ 
+      
+      
+ 
+ 
+ 
 
-clear M P A Q Odom Y_adap y_completo MM PP 
 
-% --- Executes on selection change in mostrar_simulacion_in.
-function mostrar_simulacion_in_Callback(hObject, eventdata, handles)
-% hObject    handle to mostrar_simulacion_in (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns mostrar_simulacion_in contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from mostrar_simulacion_in
-
-
-% --- Executes during object creation, after setting all properties.
-function mostrar_simulacion_in_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to mostrar_simulacion_in (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on selection change in preguntar_simular_in.
-function preguntar_simular_in_Callback(hObject, eventdata, handles)
-% hObject    handle to preguntar_simular_in (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns preguntar_simular_in contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from preguntar_simular_in
-
-
-% --- Executes during object creation, after setting all properties.
-function preguntar_simular_in_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to preguntar_simular_in (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes during object creation, after setting all properties.
-function axes1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to axes1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: place code in OpeningFcn to populate axes1
-
-
-
-function vel_sim_Callback(hObject, eventdata, handles)
-% hObject    handle to vel_sim (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of vel_sim as text
-%        str2double(get(hObject,'String')) returns contents of vel_sim as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function vel_sim_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to vel_sim (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on selection change in Modelo_med.
-function Modelo_med_Callback(hObject, eventdata, handles)
-% hObject    handle to Modelo_med (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns Modelo_med contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from Modelo_med
-
-
-% --- Executes during object creation, after setting all properties.
-function Modelo_med_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to Modelo_med (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function ruido_med_Callback(hObject, eventdata, handles)
-% hObject    handle to ruido_med (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of ruido_med as text
-%        str2double(get(hObject,'String')) returns contents of ruido_med as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function ruido_med_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ruido_med (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function edit4_Callback(hObject, eventdata, handles)
-% hObject    handle to edit4 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit4 as text
-%        str2double(get(hObject,'String')) returns contents of edit4 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit4_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit4 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function ruido_odo_Callback(hObject, eventdata, handles)
-% hObject    handle to ruido_odo (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of ruido_odo as text
-%        str2double(get(hObject,'String')) returns contents of ruido_odo as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function ruido_odo_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ruido_odo (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function dt_in_Callback(hObject, eventdata, handles)
-% hObject    handle to dt_in (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of dt_in as text
-%        str2double(get(hObject,'String')) returns contents of dt_in as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function dt_in_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to dt_in (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function dist_max_Callback(hObject, eventdata, handles)
-% hObject    handle to dist_max (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of dist_max as text
-%        str2double(get(hObject,'String')) returns contents of dist_max as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function dist_max_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to dist_max (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes during object creation, after setting all properties.
-function uitable2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to uitable2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-
-% --- Executes during object creation, after setting all properties.
-function axes3_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to axes3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-imshow('logo-vector-universidad-la-laguna.jpg')
-% Hint: place code in OpeningFcn to populate axes3
